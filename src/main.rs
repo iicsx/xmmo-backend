@@ -8,9 +8,11 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
+use axum_client_ip::SecureClientIpSource;
 
 use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
+use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 
 #[tokio::main]
@@ -53,7 +55,8 @@ async fn main() {
         .route("/users", post(database::multiple_insert_user))
         /* extensions */
         .layer(cors_layer)
-        .layer(Extension(pool));
+        .layer(Extension(pool))
+        .layer(SecureClientIpSource::ConnectInfo.into_extension());
 
     let address = dotenv::var("ADDRESS").unwrap();
     let port = dotenv::var("PORT").unwrap();
@@ -63,5 +66,10 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(&binding).await.unwrap();
 
     println!("Server running on: {}", binding);
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
