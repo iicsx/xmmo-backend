@@ -1,4 +1,10 @@
-use axum::{extract::Path, http::StatusCode, response::Json, Extension};
+use crate::utils;
+use axum::{
+    extract::{Extension, Path},
+    http::{header, StatusCode},
+    response::Response,
+    Json,
+};
 use serde_json::{json, Value};
 
 use crate::models::entities::{InsertUser, Permission, User};
@@ -7,13 +13,7 @@ use sqlx::postgres::PgPool;
 pub async fn get_all_users(Extension(pool): Extension<PgPool>) -> Result<Json<Value>, StatusCode> {
     let rows = sqlx::query!(
         "SELECT 
-            \"user\".id, 
-            \"user\".name, 
-            \"user\".email, 
-            \"user\".password, 
-            \"user\".created_at, 
-            \"user\".last_login, 
-            \"user\".banned,
+            \"user\".*,
             \"permission\".id AS \"permission_id\",
             \"permission\".name AS \"permission_name\",
             \"permission\".description AS \"permission_description\"
@@ -118,26 +118,70 @@ pub async fn multiple_insert_user(
 pub async fn single_insert_user(
     Extension(pool): Extension<PgPool>,
     Json(user): Json<InsertUser>,
-) -> Result<StatusCode, StatusCode> {
+) -> Response<String> {
     let user_query = "INSERT INTO \"user\"(name, email, password) VALUES($1, $2, $3) RETURNING id";
 
     let res: (i32,) = sqlx::query_as(&user_query)
-        .bind(user.name)
-        .bind(user.email)
-        .bind(user.password)
+        .bind(&user.name)
+        .bind(&user.email)
+        .bind(&user.password)
         .fetch_one(&pool)
         .await
-        .map_err(|_| StatusCode::CONFLICT)?;
+        .unwrap_or_else(|_| (0,));
 
+    if res.0 == 0 {
+        return Response::builder()
+            .status(StatusCode::CONFLICT)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(
+                json!({
+                  "success": false,
+                  "data": {
+                    "message": "User already exists"
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap_or_default();
+    }
+
+    // Insert default user permission
     let permission_query = "INSERT INTO \"user_permission\"(user_id, permission_id) VALUES($1, $2)";
-    let res = sqlx::query(&permission_query)
+    sqlx::query(&permission_query)
         .bind(res.0)
         .bind(1)
         .execute(&pool)
-        .await;
+        .await
+        .unwrap();
 
-    match res {
-        Ok(_) => Ok(StatusCode::CREATED),
-        Err(_) => Err(StatusCode::CONFLICT),
+    let token = utils::get_jwt(&user);
+    match token {
+        Ok(token) => Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(
+                json!({
+                  "success": true,
+                  "data": {
+                    "token": token
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap_or_default(),
+
+        Err(error) => Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(
+                json!({
+                  "success": false,
+                  "data": {
+                    "message": error
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap_or_default(),
     }
 }

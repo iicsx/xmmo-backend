@@ -13,3 +13,5 @@ sqlx = { version = "0.7", features = ["time", "postgres", "runtime-tokio", "tls-
 tower-http = { version = "0.5.2", features = ["cors"] }
 http = "0.2.1"
 axum-client-ip = "0.5.1"
+jsonwebtoken = "9.3.0"
+chrono = "0.4.37"

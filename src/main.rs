@@ -1,5 +1,6 @@
 mod handlers;
 mod models;
+mod utils;
 
 use handlers::{database, default};
 
@@ -15,7 +16,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() {
     dotenv().ok();
 
