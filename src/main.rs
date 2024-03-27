@@ -21,11 +21,20 @@ async fn main() {
 
     let connection_url = dotenv::var("DATABASE_URL").unwrap();
 
-    let pool = PgPoolOptions::new()
+    let pool = match PgPoolOptions::new()
         .max_connections(5)
         .connect(&connection_url)
         .await
-        .unwrap();
+    {
+        Ok(pool) => {
+            println!("✅ Successfully established Database connection.");
+            pool
+        }
+        Err(err) => {
+            println!("🔥 Failed to establish Dtabase connection: {:?}", err);
+            std::process::exit(1);
+        }
+    };
 
     sqlx::migrate!("./migrations")
         .run(&pool)
@@ -50,6 +59,7 @@ async fn main() {
         .route("/", get(default::not_implemented))
         .route("/status", get(default::status))
         .route("/users", get(database::get_all_users))
+        .route("/user/:id", get(database::get_user_by_id))
         /* post */
         .route("/user", post(database::single_insert_user))
         .route("/users", post(database::multiple_insert_user))

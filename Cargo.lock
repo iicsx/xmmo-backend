@@ -129,21 +129,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum_test"
-version = "0.1.0"
-dependencies = [
- "axum",
- "axum-client-ip",
- "dotenv",
- "http 0.2.12",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tower-http",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2105,6 +2090,21 @@ name = "windows_x86_64_msvc"
 version = "0.52.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32b752e52a2da0ddfbdbcc6fceadfeede4c939ed16d13e648833a61dfb611ed8"
+
+[[package]]
+name = "xmmo_backend"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "axum-client-ip",
+ "dotenv",
+ "http 0.2.12",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tower-http",
+]
 
 [[package]]
 name = "zerocopy"
