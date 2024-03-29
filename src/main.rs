@@ -2,10 +2,11 @@ mod handlers;
 mod models;
 mod utils;
 
-use handlers::{database, default};
+use handlers::{auth, database, default};
 
 use axum::{
     http::{header, HeaderValue, Method},
+    middleware::from_fn,
     routing::{get, post},
     Extension, Router,
 };
@@ -42,7 +43,11 @@ async fn main() {
         .await
         .expect("Failed to migrate database");
 
-    let origins: Vec<HeaderValue> = vec![HeaderValue::from_str("http://localhost:8080").unwrap()];
+    let origins: Vec<HeaderValue> = vec![
+        HeaderValue::from_str("http://localhost:3000").unwrap(),
+        HeaderValue::from_str("http://localhost:5173").unwrap(),
+        HeaderValue::from_str("http://localhost:8080").unwrap(),
+    ];
 
     let cors_layer = CorsLayer::new()
         .allow_methods([
@@ -53,7 +58,11 @@ async fn main() {
             Method::PATCH,
         ])
         .allow_origin(origins)
-        .allow_headers(vec![header::CONTENT_TYPE]);
+        .allow_headers(vec![
+            header::CONTENT_TYPE,
+            header::ACCESS_CONTROL_ALLOW_ORIGIN,
+            header::AUTHORIZATION,
+        ]);
 
     let app = Router::new()
         /* get */
@@ -62,8 +71,11 @@ async fn main() {
         .route("/users", get(database::get_all_users))
         .route("/user/:id", get(database::get_user_by_id))
         /* post */
-        .route("/user", post(database::single_insert_user))
         .route("/users", post(database::multiple_insert_user))
+        /* routes without middlware */
+        .route("/jwtlogin", post(auth::jwt_login))
+        .layer(from_fn(auth::middleware::jwt_authentification))
+        .route("/user", post(database::single_insert_user))
         /* extensions */
         .layer(cors_layer)
         .layer(Extension(pool))
@@ -82,5 +94,5 @@ async fn main() {
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .await
-    .unwrap();
+    .unwrap()
 }

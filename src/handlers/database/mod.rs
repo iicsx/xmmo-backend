@@ -1,4 +1,5 @@
 use crate::utils;
+
 use axum::{
     extract::{Extension, Path},
     http::{header, StatusCode},
@@ -13,7 +14,14 @@ use sqlx::postgres::PgPool;
 pub async fn get_all_users(Extension(pool): Extension<PgPool>) -> Result<Json<Value>, StatusCode> {
     let rows = sqlx::query!(
         "SELECT 
-            \"user\".*,
+            \"user\".id,
+            \"user\".name,
+            \"user\".email,
+            \"user\".created_at,
+            \"user\".last_login,
+            \"user\".muted,
+            \"user\".locked,
+            \"user\".banned,
             \"permission\".id AS \"permission_id\",
             \"permission\".name AS \"permission_name\",
             \"permission\".description AS \"permission_description\"
@@ -36,7 +44,7 @@ pub async fn get_all_users(Extension(pool): Extension<PgPool>) -> Result<Json<Va
             id: row.id.clone() as u32,
             name: row.name.clone(),
             email: row.email.clone(),
-            password: row.password.clone(),
+            password: None,
             created_at: row.created_at.to_string(),
             last_login: row.last_login.to_string(),
             permission: Permission {
@@ -44,6 +52,8 @@ pub async fn get_all_users(Extension(pool): Extension<PgPool>) -> Result<Json<Va
                 name: row.permission_name.clone(),
                 description: row.permission_description.clone(),
             },
+            muted: row.muted,
+            locked: row.locked,
             banned: row.banned,
         })
         .collect::<Vec<User>>();
@@ -55,10 +65,16 @@ pub async fn get_user_by_id(
     Extension(pool): Extension<PgPool>,
     Path(id): Path<String>,
 ) -> Json<Value> {
-    println!("ID: {}", id);
     let row = sqlx::query!(
         "SELECT 
-            \"user\".*,
+            \"user\".id,
+            \"user\".name,
+            \"user\".email,
+            \"user\".created_at,
+            \"user\".last_login,
+            \"user\".muted,
+            \"user\".locked,
+            \"user\".banned,
             \"permission\".id AS \"permission_id\",
             \"permission\".name AS \"permission_name\",
             \"permission\".description AS \"permission_description\"
@@ -77,7 +93,7 @@ pub async fn get_user_by_id(
         id: row.id.clone() as u32,
         name: row.name.clone(),
         email: row.email.clone(),
-        password: row.password.clone(),
+        password: None,
         created_at: row.created_at.to_string(),
         last_login: row.last_login.to_string(),
         permission: Permission {
@@ -85,6 +101,8 @@ pub async fn get_user_by_id(
             name: row.permission_name.clone(),
             description: row.permission_description.clone(),
         },
+        muted: row.muted,
+        locked: row.locked,
         banned: row.banned,
     };
 
