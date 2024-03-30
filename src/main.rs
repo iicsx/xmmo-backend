@@ -76,7 +76,8 @@ async fn main() {
         /* routes without middlware */
         .route("/jwtlogin", post(auth::jwt_login))
         .layer(from_fn(auth::middleware::jwt_authentification))
-        .route("/user", post(database::single_insert_user))
+        .route("/register", post(database::single_insert_user))
+        .route("/login", post(database::login_user))
         /* extensions */
         .layer(cors_layer)
         .layer(Extension(pool))

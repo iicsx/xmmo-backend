@@ -8,7 +8,7 @@ use axum::{
 };
 use serde_json::{json, Value};
 
-use crate::models::entities::{InsertUser, Permission, User};
+use crate::models::entities::{InsertUser, LoginCheckUser, LoginUser, Permission, User};
 use sqlx::postgres::PgPool;
 
 pub async fn get_all_users(Extension(pool): Extension<PgPool>) -> Result<Json<Value>, StatusCode> {
@@ -188,6 +188,120 @@ pub async fn single_insert_user(
             )
             .unwrap_or_default(),
 
+        Err(error) => Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(
+                json!({
+                  "success": false,
+                  "data": {
+                    "message": error
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap_or_default(),
+    }
+}
+
+pub async fn login_user(
+    Extension(pool): Extension<PgPool>,
+    Json(payload): Json<LoginUser>,
+) -> Response<String> {
+    let row = sqlx::query!(
+        "SELECT
+            id,
+            name,
+            email,
+            password,
+            banned
+        FROM \"user\"
+        WHERE email = $1",
+        payload.email,
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|_| StatusCode::NOT_FOUND);
+
+    let row = match row {
+        Ok(row) => row,
+        Err(_) => {
+            return Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(
+                    json!({
+                      "success": false,
+                      "data": {
+                        "message": "Email not found"
+                      }
+                    })
+                    .to_string(),
+                )
+                .unwrap_or_default()
+        }
+    };
+
+    let user = LoginCheckUser {
+        id: row.id.clone() as u32,
+        name: row.name.clone(),
+        email: row.email.clone(),
+        password: row.password.clone(),
+        banned: row.banned,
+    };
+
+    if user.banned {
+        return Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(
+                json!({
+                  "success": false,
+                  "data": {
+                    "message": "User is banned"
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap_or_default();
+    }
+
+    if user.password != payload.password {
+        return Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(
+                json!({
+                  "success": false,
+                  "data": {
+                    "message": "Invalid password"
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap_or_default();
+    }
+
+    let token = utils::get_jwt(&InsertUser {
+        name: user.name.clone(),
+        email: user.email.clone(),
+        password: user.password.clone(),
+    });
+
+    match token {
+        Ok(token) => Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(
+                json!({
+                  "success": true,
+                  "data": {
+                    "token": token
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap_or_default(),
         Err(error) => Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .header(header::CONTENT_TYPE, "application/json")

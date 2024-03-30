@@ -28,6 +28,12 @@ pub struct EmailUser {
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
+pub struct LoginUser {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, FromRow)]
 pub struct InsertUser {
     pub name: String,
     pub email: String,
@@ -37,4 +43,13 @@ pub struct InsertUser {
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct JwtPayload {
     pub token: String,
+}
+
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct LoginCheckUser {
+    pub id: u32,
+    pub name: String,
+    pub email: String,
+    pub password: String,
+    pub banned: bool,
 }
