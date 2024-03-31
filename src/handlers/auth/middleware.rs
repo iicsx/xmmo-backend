@@ -1,4 +1,4 @@
-use crate::utils::Claims;
+use crate::models::entities::claims::Claims;
 use axum::body::Body;
 use axum::{
     http::{Request, StatusCode},

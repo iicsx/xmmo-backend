@@ -1,7 +1,7 @@
 use axum::{http::StatusCode, Json};
 use serde_json::{json, Value};
 
-use crate::models::entities::{Permission, User};
+use crate::models::entities::user::{Permission, User};
 use sqlx::postgres::PgPool;
 
 pub async fn get_user_by_email(pool: &PgPool, email: &String) -> Json<Value> {

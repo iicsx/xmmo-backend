@@ -1,4 +1,4 @@
-use crate::utils;
+use crate::utils::auth::{get_jwt, get_refresh_token};
 
 use axum::{
     extract::{Extension, Path},
@@ -8,7 +8,7 @@ use axum::{
 };
 use serde_json::{json, Value};
 
-use crate::models::entities::{InsertUser, LoginCheckUser, LoginUser, Permission, User};
+use crate::models::entities::user::{InsertUser, LoginCheckUser, LoginUser, Permission, User};
 use sqlx::postgres::PgPool;
 
 pub async fn get_all_users(Extension(pool): Extension<PgPool>) -> Result<Json<Value>, StatusCode> {
@@ -172,36 +172,67 @@ pub async fn single_insert_user(
         .await
         .unwrap();
 
-    let token = utils::get_jwt(&user);
-    match token {
-        Ok(token) => Response::builder()
-            .status(StatusCode::OK)
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(
-                json!({
-                  "success": true,
-                  "data": {
-                    "token": token
-                  }
-                })
-                .to_string(),
-            )
-            .unwrap_or_default(),
+    let token = match get_jwt(&user, false) {
+        Ok(token) => token,
+        Err(_) => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(
+                    json!({
+                      "success": false,
+                      "data": {
+                        "message": "Failed to generate token"
+                      }
+                    })
+                    .to_string(),
+                )
+                .unwrap_or_default();
+        }
+    };
 
-        Err(error) => Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(
-                json!({
-                  "success": false,
-                  "data": {
-                    "message": error
-                  }
-                })
-                .to_string(),
-            )
-            .unwrap_or_default(),
-    }
+    let refresh_token = match get_refresh_token(&user) {
+        Ok(token) => token,
+        Err(_) => {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(
+                    json!({
+                      "success": false,
+                      "data": {
+                        "message": "Failed to generate refresh token"
+                      }
+                    })
+                    .to_string(),
+                )
+                .unwrap_or_default();
+        }
+    };
+
+    // insert refresh token into database
+    let refresh_token_query = "INSERT INTO \"refresh_token\"(user_id, token) VALUES($1, $2)";
+    sqlx::query(&refresh_token_query)
+        .bind(res.0)
+        .bind(&refresh_token)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(
+            json!({
+              "success": true,
+              "data": {
+                "token": token,
+                "refresh_token": refresh_token
+              }
+            })
+            .to_string(),
+        )
+        .unwrap_or_default()
 }
 
 pub async fn login_user(
@@ -282,11 +313,14 @@ pub async fn login_user(
             .unwrap_or_default();
     }
 
-    let token = utils::get_jwt(&InsertUser {
-        name: user.name.clone(),
-        email: user.email.clone(),
-        password: user.password.clone(),
-    });
+    let token = get_jwt(
+        &InsertUser {
+            name: user.name.clone(),
+            email: user.email.clone(),
+            password: user.password.clone(),
+        },
+        false,
+    );
 
     match token {
         Ok(token) => Response::builder()

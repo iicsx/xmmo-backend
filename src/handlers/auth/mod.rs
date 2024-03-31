@@ -1,6 +1,7 @@
 pub mod middleware;
 
-use crate::utils;
+use crate::utils::auth::decode_jwt;
+use crate::utils::user::get_user_by_email;
 use axum::{
     extract::Extension,
     http::{header, StatusCode},
@@ -9,18 +10,18 @@ use axum::{
 };
 use serde_json::{json, Value};
 
-use crate::models::entities::JwtPayload;
+use crate::models::entities::auth::JwtPayload;
 use sqlx::postgres::PgPool;
 
 pub async fn jwt_login(
     Extension(pool): Extension<PgPool>,
     Json(user): Json<JwtPayload>,
 ) -> Response<String> {
-    let token = utils::decode_jwt(&user.token);
+    let token = decode_jwt(&user.token);
 
     match token {
         Ok(token) => {
-            let user = utils::user::get_user_by_email(&pool, &token.email).await;
+            let user = get_user_by_email(&pool, &token.email).await;
 
             Response::builder()
                 .status(StatusCode::OK)
