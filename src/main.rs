@@ -38,12 +38,6 @@ async fn main() {
         }
     };
 
-    let res = sqlx::migrate!("./migrations").run(&pool).await;
-    match res {
-        Ok(_) => println!("Migrations ran successfully"),
-        Err(e) => println!("Error running migrations: {:?}", e),
-    }
-
     let origins: Vec<HeaderValue> = vec![
         HeaderValue::from_str("http://localhost:3000").unwrap(),
         HeaderValue::from_str("http://localhost:5173").unwrap(),
