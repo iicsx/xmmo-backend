@@ -1,10 +1,9 @@
-use axum::{http::StatusCode, Json};
-use serde_json::{json, Value};
+use axum::http::StatusCode;
 
 use crate::models::entities::user::{Permission, User};
 use sqlx::postgres::PgPool;
 
-pub async fn get_user_by_email(pool: &PgPool, email: &String) -> Json<Value> {
+pub async fn get_user_by_email(pool: &PgPool, email: &String) -> User {
     let row = sqlx::query!(
         "SELECT 
             \"user\".id,
@@ -46,5 +45,5 @@ pub async fn get_user_by_email(pool: &PgPool, email: &String) -> Json<Value> {
         banned: row.banned,
     };
 
-    Json(json!(user))
+    user
 }

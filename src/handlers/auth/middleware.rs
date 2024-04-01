@@ -18,6 +18,8 @@ pub async fn jwt_authentification(
 ) -> Result<Response<Body>, StatusCode> {
     dotenv().ok();
 
+    println!("JWT Authentification");
+
     let secret = match dotenv::var("JWT_SECRET") {
         Ok(secret) => secret,
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -52,6 +54,14 @@ pub async fn jwt_authentification(
         Ok(claims) => Arc::new(claims),
         _ => return Err(StatusCode::UNAUTHORIZED),
     };
+
+    if user_claims.claims.exp < chrono::Utc::now().timestamp() {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    if user_claims.claims.refresh {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
 
     request.extensions_mut().insert(user_claims.clone());
     Ok(next.run(request).await)

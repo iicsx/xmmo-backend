@@ -2,10 +2,7 @@ use chrono::{Duration, Utc};
 use dotenv::dotenv;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
-use crate::models::entities::{
-    claims::{Claims, RefreshClaims},
-    user::InsertUser,
-};
+use crate::models::entities::{claims::Claims, user::InsertUser};
 
 pub fn get_jwt(user: &InsertUser, from_refresh: bool) -> Result<String, String> {
     dotenv().ok();
@@ -17,6 +14,7 @@ pub fn get_jwt(user: &InsertUser, from_refresh: bool) -> Result<String, String> 
         &Claims {
             from_refresh,
             email: user.email.clone(),
+            refresh: false,
             exp: (Utc::now()
                 + Duration::minutes(ttl.parse::<i64>().expect("Failed to parse TTL for JWT")))
             .timestamp(),
@@ -58,8 +56,10 @@ pub fn get_refresh_token(user: &InsertUser) -> Result<String, String> {
 
     let token = encode(
         &Header::default(),
-        &RefreshClaims {
+        &Claims {
+            from_refresh: false,
             email: user.email.clone(),
+            refresh: true,
             exp: (Utc::now()
                 + Duration::days(ttl.parse::<i64>().expect("Failed to parse TTL for JWT")))
             .timestamp(),
