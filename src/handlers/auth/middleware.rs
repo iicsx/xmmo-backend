@@ -18,8 +18,6 @@ pub async fn jwt_authentification(
 ) -> Result<Response<Body>, StatusCode> {
     dotenv().ok();
 
-    println!("JWT Authentification");
-
     let secret = match dotenv::var("JWT_SECRET") {
         Ok(secret) => secret,
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
