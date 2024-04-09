@@ -63,11 +63,11 @@ async fn main() {
         /* get */
         .route("/", get(default::not_implemented))
         .route("/status", get(default::status))
-        .route("/user/:id", get(database::user::get_user_by_id))
+        .route("/user/:id", get(database::user::fetch_user_by_id))
         /* post */
-        .route("/jwtlogin", post(auth::jwt_login))
         .layer(from_fn(auth::middleware::jwt_authentification))
         /* routes without middlware */
+        .route("/jwtlogin", post(auth::jwt_login))
         .route("/refresh", post(auth::refresh_token))
         .route("/register", post(database::user::single_insert_user))
         .route("/login", post(database::user::login_user))
