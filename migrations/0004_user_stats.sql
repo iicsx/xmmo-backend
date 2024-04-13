@@ -8,14 +8,15 @@ CREATE TABLE IF NOT EXISTS user_stats (
 
 CREATE TABLE IF NOT EXISTS user_details (
   user_id           INT REFERENCES "user"(id) PRIMARY KEY,
-  strength          INT NOT NULL DEFAULT 0,
-  defence           INT NOT NULL DEFAULT 0,  
-  dexterity         INT NOT NULL DEFAULT 0,
+  strength          INT NOT NULL DEFAULT 5,
+  defence           INT NOT NULL DEFAULT 5,  
+  dexterity         INT NOT NULL DEFAULT 5,
   current_energy    INT NOT NULL DEFAULT 5,
   max_energy        INT NOT NULL DEFAULT 5,
   current_hp        INT NOT NULL DEFAULT 10,
   max_hp            INT NOT NULL DEFAULT 10,
-  exp               INT NOT NULL DEFAULT 0,
+  exp               BIGINT NOT NULL DEFAULT 0,
+  gold              INT NOT NULL DEFAULT 0,
   profession        INT,
   profession_exp    INT
 );

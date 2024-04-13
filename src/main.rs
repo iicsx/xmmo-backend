@@ -7,7 +7,7 @@ use handlers::{auth, database, default};
 use axum::{
     http::{header, HeaderValue, Method},
     middleware::from_fn,
-    routing::{get, post},
+    routing::{get, patch, post},
     Extension, Router,
 };
 use axum_client_ip::SecureClientIpSource;
@@ -64,6 +64,7 @@ async fn main() {
         .route("/", get(default::not_implemented))
         .route("/status", get(default::status))
         .route("/user/:id", get(database::user::fetch_user_by_id))
+        .route("/user/:id", patch(database::user::patch_user_by_id))
         /* post */
         .layer(from_fn(auth::middleware::jwt_authentification))
         /* routes without middlware */

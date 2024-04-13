@@ -32,6 +32,7 @@ pub async fn get_user_by_email(pool: &PgPool, email: &String) -> User {
             \"user_details\".current_hp,
             \"user_details\".max_hp,
             \"user_details\".exp,
+            \"user_details\".gold,
             \"user_details\".profession_exp
 
         FROM \"user\" 
@@ -74,6 +75,7 @@ pub async fn get_user_by_email(pool: &PgPool, email: &String) -> User {
             current_hp: row.current_hp as u32,
             max_hp: row.max_hp as u32,
             exp: row.exp as u32,
+            gold: row.gold as u32,
             profession_exp: row.profession_exp.unwrap_or(0) as u32,
         },
         muted: row.muted,
@@ -113,6 +115,7 @@ pub async fn get_user_by_id(pool: &PgPool, id: &String) -> User {
             \"user_details\".current_hp,
             \"user_details\".max_hp,
             \"user_details\".exp,
+            \"user_details\".gold,
             \"user_details\".profession_exp
 
         FROM \"user\" 
@@ -155,6 +158,7 @@ pub async fn get_user_by_id(pool: &PgPool, id: &String) -> User {
             current_hp: row.current_hp as u32,
             max_hp: row.max_hp as u32,
             exp: row.exp as u32,
+            gold: row.gold as u32,
             profession_exp: row.profession_exp.unwrap_or(0) as u32,
         },
         muted: row.muted,
