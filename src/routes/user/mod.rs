@@ -1,4 +1,4 @@
-use crate::utils::{
+use crate::handlers::{
     auth::{get_jwt, get_refresh_token},
     crypt::{hash_password, verify_password},
     user::get_user_by_id,
