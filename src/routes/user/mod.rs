@@ -1,7 +1,7 @@
 use crate::handlers::{
     auth::{get_jwt, get_refresh_token},
     crypt::{hash_password, verify_password},
-    user::get_user_by_id,
+    user::{get_user_by_id, patch_user},
 };
 
 use axum::{
@@ -54,48 +54,32 @@ pub async fn patch_user_by_id(
         }
     };
 
-    // patch user details
-    let query = "UPDATE \"user_details\" SET strength = $1, defence = $2, dexterity = $3, current_energy = $4, max_energy = $5, current_hp = $6, max_hp = $7, exp = $8, gold = $9, profession_exp = $10 WHERE user_id = $11";
-    sqlx::query(&query)
-        .bind(user.details.strength as i32)
-        .bind(user.details.defence as i32)
-        .bind(user.details.dexterity as i32)
-        .bind(user.details.current_energy as i32)
-        .bind(user.details.max_energy as i32)
-        .bind(user.details.current_hp as i32)
-        .bind(user.details.max_hp as i32)
-        .bind(user.details.exp as i32)
-        .bind(user.details.gold as i32)
-        .bind(user.details.profession_exp as i32)
-        .bind(&id)
-        .execute(&pool)
-        .await
-        .unwrap();
-
-    // patch user stats
-    let query = "UPDATE \"user_stats\" SET ledges_grabbed = $1, npc_kills = $2, items_dropped = $3, height = $4 WHERE user_id = $5";
-    sqlx::query(&query)
-        .bind(user.stats.ledges_grabbed as i32)
-        .bind(user.stats.npc_kills as i32)
-        .bind(user.stats.items_dropped as i32)
-        .bind(user.stats.height as i32)
-        .bind(&id)
-        .execute(&pool)
-        .await
-        .unwrap();
-
-    Response::builder()
-        .status(StatusCode::OK)
-        .body(
-            json!({
-              "success": true,
-              "data": {
-                "message": "Successfully updated user"
-                }
-            })
-            .to_string(),
-        )
-        .unwrap()
+    match patch_user(&pool, &id, &user).await {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body(
+                json!({
+                  "success": true,
+                  "data": {
+                    "message": "User updated"
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(
+                json!({
+                  "success": false,
+                  "data": {
+                    "message": "Failed to update user"
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap(),
+    }
 }
 
 async fn insert_user_permission(pool: &PgPool, user_id: i32) {
