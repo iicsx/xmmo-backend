@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS user_details (
   max_hp            INT NOT NULL DEFAULT 10,
   exp               BIGINT NOT NULL DEFAULT 0,
   gold              INT NOT NULL DEFAULT 0,
+  bank              INT NOT NULL DEFAULT 0,
   profession        INT,
   profession_exp    INT
 );

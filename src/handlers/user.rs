@@ -33,6 +33,7 @@ pub async fn get_user_by_email(pool: &PgPool, email: &String) -> User {
             \"user_details\".max_hp,
             \"user_details\".exp,
             \"user_details\".gold,
+            \"user_details\".bank,
             \"user_details\".profession_exp
 
         FROM \"user\" 
@@ -76,6 +77,7 @@ pub async fn get_user_by_email(pool: &PgPool, email: &String) -> User {
             max_hp: row.max_hp as u32,
             exp: row.exp as u32,
             gold: row.gold as u32,
+            bank: row.bank as u32,
             profession_exp: row.profession_exp.unwrap_or(0) as u32,
         },
         muted: row.muted,
@@ -116,6 +118,7 @@ pub async fn get_user_by_id(pool: &PgPool, id: &String) -> User {
             \"user_details\".max_hp,
             \"user_details\".exp,
             \"user_details\".gold,
+            \"user_details\".bank,
             \"user_details\".profession_exp
 
         FROM \"user\" 
@@ -159,6 +162,7 @@ pub async fn get_user_by_id(pool: &PgPool, id: &String) -> User {
             max_hp: row.max_hp as u32,
             exp: row.exp as u32,
             gold: row.gold as u32,
+            bank: row.bank as u32,
             profession_exp: row.profession_exp.unwrap_or(0) as u32,
         },
         muted: row.muted,
@@ -170,7 +174,7 @@ pub async fn get_user_by_id(pool: &PgPool, id: &String) -> User {
 }
 
 pub async fn patch_user(pool: &PgPool, id: &i32, user: &User) -> Result<bool, sqlx::Error> {
-    let query = "UPDATE \"user_details\" SET strength = $1, defence = $2, dexterity = $3, current_energy = $4, max_energy = $5, current_hp = $6, max_hp = $7, exp = $8, gold = $9, profession_exp = $10 WHERE user_id = $11";
+    let query = "UPDATE \"user_details\" SET strength = $1, defence = $2, dexterity = $3, current_energy = $4, max_energy = $5, current_hp = $6, max_hp = $7, exp = $8, gold = $9, bank = $10, profession_exp = $11 WHERE user_id = $12";
     sqlx::query(&query)
         .bind(user.details.strength as i32)
         .bind(user.details.defence as i32)
@@ -181,6 +185,7 @@ pub async fn patch_user(pool: &PgPool, id: &i32, user: &User) -> Result<bool, sq
         .bind(user.details.max_hp as i32)
         .bind(user.details.exp as i32)
         .bind(user.details.gold as i32)
+        .bind(user.details.bank as i32)
         .bind(user.details.profession_exp as i32)
         .bind(&id)
         .execute(pool)

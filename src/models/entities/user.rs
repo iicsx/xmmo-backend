@@ -19,6 +19,7 @@ pub struct UserDetails {
     pub max_hp: u32,
     pub exp: u32,
     pub gold: u32,
+    pub bank: u32,
     pub profession_exp: u32,
 }
 
