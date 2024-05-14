@@ -62,6 +62,7 @@ async fn main() {
         .route("/", get(routes::default::not_implemented))
         .route("/status", get(routes::default::status))
         .route("/user/:id", get(routes::user::fetch_user_by_id))
+        .route("/item/:id", get(routes::item::fetch_item_by_id))
         /* patch */
         .route("/user/:id", patch(routes::user::patch_user_by_id))
         /* post */
