@@ -1,13 +1,11 @@
 mod handlers;
 mod models;
-mod utils;
-
-use handlers::{auth, database, default};
+mod routes;
 
 use axum::{
     http::{header, HeaderValue, Method},
     middleware::from_fn,
-    routing::{get, post},
+    routing::{get, patch, post},
     Extension, Router,
 };
 use axum_client_ip::SecureClientIpSource;
@@ -33,7 +31,7 @@ async fn main() {
             pool
         }
         Err(err) => {
-            println!("🔥 Failed to establish Dtabase connection: {:?}", err);
+            println!("🔥 Failed to establish Database connection: {:?}", err);
             std::process::exit(1);
         }
     };
@@ -61,16 +59,19 @@ async fn main() {
 
     let app = Router::new()
         /* get */
-        .route("/", get(default::not_implemented))
-        .route("/status", get(default::status))
-        .route("/user/:id", get(database::user::get_user_by_id))
+        .route("/", get(routes::default::not_implemented))
+        .route("/status", get(routes::default::status))
+        .route("/user/:id", get(routes::user::fetch_user_by_id))
+        .route("/item/:id", get(routes::item::fetch_item_by_id))
+        /* patch */
+        .route("/user/:id", patch(routes::user::patch_user_by_id))
         /* post */
-        .route("/jwtlogin", post(auth::jwt_login))
-        .layer(from_fn(auth::middleware::jwt_authentification))
+        .layer(from_fn(routes::auth::middleware::jwt_authentification))
         /* routes without middlware */
-        .route("/refresh", post(auth::refresh_token))
-        .route("/register", post(database::user::single_insert_user))
-        .route("/login", post(database::user::login_user))
+        .route("/jwtlogin", post(routes::auth::jwt_login))
+        .route("/refresh", post(routes::auth::refresh_token))
+        .route("/register", post(routes::user::single_insert_user))
+        .route("/login", post(routes::user::login_user))
         /* extensions */
         .layer(cors_layer)
         .layer(Extension(pool))

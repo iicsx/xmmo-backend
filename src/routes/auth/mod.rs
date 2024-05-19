@@ -1,8 +1,8 @@
 pub mod middleware;
 
+use crate::handlers::user::get_user_by_email;
+use crate::handlers::auth::{decode_jwt, get_jwt};
 use crate::models::entities::user::InsertUser;
-use crate::utils::auth::{decode_jwt, get_jwt};
-use crate::utils::user::get_user_by_email;
 use axum::{
     extract::Extension,
     http::{header, StatusCode},

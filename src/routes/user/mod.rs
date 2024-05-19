@@ -1,5 +1,8 @@
-use crate::utils::auth::{get_jwt, get_refresh_token};
-use crate::utils::crypt::{hash_password, verify_password};
+use crate::handlers::{
+    auth::{get_jwt, get_refresh_token},
+    crypt::{hash_password, verify_password},
+    user::{get_user_by_id, patch_user},
+};
 
 use axum::{
     extract::{Extension, Path},
@@ -9,55 +12,102 @@ use axum::{
 };
 use serde_json::{json, Value};
 
-use crate::models::entities::user::{InsertUser, LoginCheckUser, LoginUser, Permission, User};
+use crate::models::entities::user::{InsertUser, LoginCheckUser, LoginUser, User};
 use sqlx::postgres::PgPool;
 
-pub async fn get_user_by_id(
+pub async fn fetch_user_by_id(
     Extension(pool): Extension<PgPool>,
     Path(id): Path<String>,
 ) -> Json<Value> {
-    let row = sqlx::query!(
-        "SELECT 
-            \"user\".id,
-            \"user\".name,
-            \"user\".email,
-            \"user\".created_at,
-            \"user\".last_login,
-            \"user\".muted,
-            \"user\".locked,
-            \"user\".banned,
-            \"permission\".id AS \"permission_id\",
-            \"permission\".name AS \"permission_name\",
-            \"permission\".description AS \"permission_description\"
-        FROM \"user\" 
-        JOIN \"user_permission\" ON \"user\".id = \"user_permission\".user_id 
-        JOIN \"permission\" ON \"user_permission\".permission_id = \"permission\".id 
-        WHERE \"user\".id = $1",
-        id.parse::<i32>().unwrap()
-    )
-    .fetch_one(&pool)
-    .await
-    .map_err(|_| StatusCode::NOT_FOUND)
-    .unwrap();
+    let user = get_user_by_id(&pool, &id).await;
 
-    let user = User {
-        id: row.id.clone() as u32,
-        name: row.name.clone(),
-        email: row.email.clone(),
-        password: None,
-        created_at: row.created_at.to_string(),
-        last_login: row.last_login.to_string(),
-        permission: Permission {
-            id: row.permission_id.clone() as u32,
-            name: row.permission_name.clone(),
-            description: row.permission_description.clone(),
-        },
-        muted: row.muted,
-        locked: row.locked,
-        banned: row.banned,
+    Json(json!({
+      "success": true,
+      "data": {
+        "user": user
+      }
+    }))
+}
+
+pub async fn patch_user_by_id(
+    Extension(pool): Extension<PgPool>,
+    Path(id): Path<String>,
+    Json(user): Json<User>,
+) -> Response<String> {
+    let id = match id.parse::<i32>() {
+        Ok(id) => id,
+        Err(_) => {
+            return {
+                Response::builder()
+                    .status(StatusCode::BAD_REQUEST)
+                    .body(
+                        json!({
+                          "success": false,
+                          "data": {
+                            "message": "Invalid user id"
+                          }
+                        })
+                        .to_string(),
+                    )
+                    .unwrap()
+            }
+        }
     };
 
-    Json(json!(user))
+    match patch_user(&pool, &id, &user).await {
+        Ok(_) => Response::builder()
+            .status(StatusCode::OK)
+            .body(
+                json!({
+                  "success": true,
+                  "data": {
+                    "message": "User updated"
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(
+                json!({
+                  "success": false,
+                  "data": {
+                    "message": "Failed to update user"
+                  }
+                })
+                .to_string(),
+            )
+            .unwrap(),
+    }
+}
+
+async fn insert_user_permission(pool: &PgPool, user_id: i32) {
+    let permission_query = "INSERT INTO \"user_permission\"(user_id, permission_id) VALUES($1, $2)";
+    sqlx::query(&permission_query)
+        .bind(user_id)
+        .bind(1)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+async fn insert_user_stats(pool: &PgPool, user_id: i32) {
+    let user_stats_query = "INSERT INTO \"user_stats\"(user_id) VALUES($1)";
+    sqlx::query(&user_stats_query)
+        .bind(user_id)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+async fn insert_user_details(pool: &PgPool, user_id: i32) {
+    let user_details_query = "INSERT INTO \"user_details\"(user_id) VALUES($1)";
+    sqlx::query(&user_details_query)
+        .bind(user_id)
+        .execute(pool)
+        .await
+        .unwrap();
 }
 
 pub async fn single_insert_user(
@@ -91,14 +141,9 @@ pub async fn single_insert_user(
             .unwrap_or_default();
     }
 
-    // Insert default user permission
-    let permission_query = "INSERT INTO \"user_permission\"(user_id, permission_id) VALUES($1, $2)";
-    sqlx::query(&permission_query)
-        .bind(res.0)
-        .bind(1)
-        .execute(&pool)
-        .await
-        .unwrap();
+    insert_user_details(&pool, res.0).await;
+    insert_user_stats(&pool, res.0).await;
+    insert_user_permission(&pool, res.0).await;
 
     let token = match get_jwt(&user, false) {
         Ok(token) => token,
