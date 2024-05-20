@@ -1,9 +1,7 @@
 use crate::models::entities::user::{Permission, User, UserDetails, UserStats};
 use sqlx::postgres::PgPool;
 
-use axum::http::StatusCode;
-
-pub async fn get_user_by_email(pool: &PgPool, email: &String) -> User {
+pub async fn get_user_by_email(pool: &PgPool, email: &String) -> Option<User> {
     let row = sqlx::query!(
         "SELECT 
             \"user\".id,
@@ -47,7 +45,10 @@ pub async fn get_user_by_email(pool: &PgPool, email: &String) -> User {
     .fetch_one(pool)
     .await;
 
-    let row = row.unwrap();
+    let row = match row {
+        Ok(row) => row,
+        Err(_) => return None,
+    };
 
     let user = User {
         id: row.id.clone() as u32,
@@ -85,10 +86,10 @@ pub async fn get_user_by_email(pool: &PgPool, email: &String) -> User {
         banned: row.banned,
     };
 
-    user
+    Some(user)
 }
 
-pub async fn get_user_by_id(pool: &PgPool, id: &String) -> User {
+pub async fn get_user_by_id(pool: &PgPool, id: &String) -> Option<User> {
     let row = sqlx::query!(
         "SELECT 
             \"user\".id,
@@ -130,9 +131,12 @@ pub async fn get_user_by_id(pool: &PgPool, id: &String) -> User {
         id.parse::<i32>().unwrap()
     )
     .fetch_one(pool)
-    .await
-    .map_err(|_| StatusCode::NOT_FOUND)
-    .unwrap();
+    .await;
+
+    let row = match row {
+        Ok(row) => row,
+        Err(_) => return None,
+    };
 
     let user = User {
         id: row.id.clone() as u32,
@@ -170,7 +174,7 @@ pub async fn get_user_by_id(pool: &PgPool, id: &String) -> User {
         banned: row.banned,
     };
 
-    user
+    Some(user)
 }
 
 pub async fn patch_user(pool: &PgPool, id: &i32, user: &User) -> Result<bool, sqlx::Error> {
