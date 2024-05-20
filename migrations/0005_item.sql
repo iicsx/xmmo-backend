@@ -1,18 +1,31 @@
-CREATE TABLE IF NOT EXISTS "item" (
-  item_id         INT PRIMARY KEY     NOT NULL,
-  item_name       VARCHAR(250)        NOT NULL,
-  item_type       VARCHAR(250)        NOT NULL,
-  item_rarity     VARCHAR(250)        NOT NULL,
-  stat_type       VARCHAR(250)        NOT NULL,
-  stat_value      INT                 NOT NULL,
-  mod_type        VARCHAR(250)        NOT NULL,
-  mod_value       INT                 NOT NULL,
-  mod_duration    INT                 NOT NULL,
-  req_type        VARCHAR(250)        NOT NULL,
-  req_value       INT                 NOT NULL,
-  item_weight     DECIMAL(10, 2)      NOT NULL,
-  item_img        VARCHAR(250)        NOT NULL,
-  item_desc       TEXT                NOT NULL
+CREATE TABLE IF NOT EXISTS "usage_group" (
+ group_name     VARCHAR(50) PRIMARY KEY NOT NULL,
+ "limit"        INT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS item_id_idx on item(item_id);
+CREATE TABLE IF NOT EXISTS "item" (
+  id            INT PRIMARY KEY   NOT NULL,
+  name          VARCHAR(250)      NOT NULL,
+  itype         VARCHAR(250)      NOT NULL,
+  rarity        VARCHAR(250)      NOT NULL,
+  weight        DECIMAL(10, 2)    NOT NULL,
+  img           VARCHAR(250)      NOT NULL,
+  group_name    VARCHAR(50)       REFERENCES "usage_group"(group_name),
+  description   TEXT,
+  stat_type     VARCHAR(250),
+  stat_value    INT,
+  mod_type      VARCHAR(250),
+  mod_value     INT,
+  mod_duration  INT,
+  req_type      VARCHAR(250),
+  req_value     INT               
+);
+
+CREATE TABLE IF NOT EXISTS "item_usage" (
+  item_id       INT REFERENCES "item"(id),
+  user_id       INT REFERENCES "user"(id),
+  usages        INT NOT NULL,
+  PRIMARY KEY   (item_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS item_id_idx on item(id);

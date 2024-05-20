@@ -1,7 +1,7 @@
 pub mod middleware;
 
-use crate::handlers::user::get_user_by_email;
 use crate::handlers::auth::{decode_jwt, get_jwt};
+use crate::handlers::user::get_user_by_email;
 use crate::models::entities::user::InsertUser;
 use axum::{
     extract::Extension,
@@ -22,7 +22,16 @@ pub async fn jwt_login(
 
     match claims {
         Ok(token) => {
-            let found_user = get_user_by_email(&pool, &token.email).await;
+            let found_user = match get_user_by_email(&pool, &token.email).await {
+                Some(user) => user,
+                None => {
+                    return Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .header(header::CONTENT_TYPE, "application/json")
+                        .body(json!(Value::Null).to_string())
+                        .unwrap();
+                }
+            };
 
             Response::builder()
                 .status(StatusCode::OK)
@@ -35,7 +44,16 @@ pub async fn jwt_login(
 
             match refresh_token {
                 Ok(token) => {
-                    let found_user = get_user_by_email(&pool, &token.email).await;
+                    let found_user = match get_user_by_email(&pool, &token.email).await {
+                        Some(user) => user,
+                        None => {
+                            return Response::builder()
+                                .status(StatusCode::UNAUTHORIZED)
+                                .header(header::CONTENT_TYPE, "application/json")
+                                .body(json!(Value::Null).to_string())
+                                .unwrap();
+                        }
+                    };
 
                     let new_token = get_jwt(
                         &InsertUser {
@@ -73,7 +91,16 @@ pub async fn refresh_token(
     Json(data): Json<JwtPayload>,
 ) -> Response<String> {
     let claims = decode_jwt(&data.refresh_token);
-    let user = get_user_by_email(&pool, &claims.unwrap().email).await;
+    let user = match get_user_by_email(&pool, &claims.unwrap().email).await {
+        Some(user) => user,
+        None => {
+            return Response::builder()
+                .status(StatusCode::UNAUTHORIZED)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(json!(Value::Null).to_string())
+                .unwrap();
+        }
+    };
 
     let new_token = get_jwt(
         &InsertUser {

@@ -3,4 +3,4 @@ CREATE TABLE IF NOT EXISTS "refresh_token" (
     token       TEXT             NOT NULL
 );
 
-CREATE INDEX user_id ON "refresh_token" (user_id);
+CREATE INDEX IF NOT EXISTS user_id ON "refresh_token" (user_id);

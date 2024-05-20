@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS "user" (
     banned      BOOLEAN             NOT NULL DEFAULT false
 );
 
-CREATE INDEX user_email_idx ON "user" (email);
+CREATE INDEX IF NOT EXISTS user_email_idx ON "user" (email);
