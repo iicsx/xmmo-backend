@@ -1,4 +1,5 @@
 pub mod auth;
 pub mod crypt;
-pub mod user;
+pub mod inventory;
 pub mod item;
+pub mod user;
