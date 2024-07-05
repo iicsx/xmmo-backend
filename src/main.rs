@@ -70,6 +70,12 @@ async fn main() {
         /* patch */
         .route("/user/:id", patch(routes::user::patch_user_by_id))
         /* post */
+        .route(
+            "/inventory/:id",
+            post(routes::inventory::add_item_to_inventory),
+        )
+        .route("/has_item", post(routes::inventory::user_has_item))
+        /* middleware */
         .layer(from_fn(routes::auth::middleware::jwt_authentification))
         /* routes without middlware */
         .route("/jwtlogin", post(routes::auth::jwt_login))

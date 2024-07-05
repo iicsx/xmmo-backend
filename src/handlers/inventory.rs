@@ -43,7 +43,7 @@ pub async fn get_inventory_by_id(pool: &PgPool, user_id: &String) -> Option<Vec<
         let item = Inventory {
             user_id: row.user_id.clone() as u32,
             quantity: row.quantity.clone() as u32,
-            level: row.level.clone() as u32,
+            level: Some(row.level.clone() as u32),
             item: Item {
                 id: row.id.clone() as u32,
                 name: row.name.clone(),
@@ -72,4 +72,53 @@ pub async fn get_inventory_by_id(pool: &PgPool, user_id: &String) -> Option<Vec<
     }
 
     Some(inv)
+}
+
+pub async fn insert_inventory_item(
+    pool: &PgPool,
+    user_id: &String,
+    item_id: &String,
+    quantity: &u32,
+    level: Option<&u32>,
+) -> Option<bool> {
+    let item_id = item_id.parse::<i32>().unwrap();
+    let user_id = user_id.parse::<i32>().unwrap();
+    let quantity = *quantity as i32;
+    let level = match level {
+        Some(level) => Some(*level as i32),
+        None => None,
+    };
+
+    let result = sqlx::query!(
+        "INSERT INTO \"inventory\" (user_id, item_id, quantity, level) VALUES ($1, $2, $3, $4)",
+        user_id,
+        item_id,
+        quantity,
+        level
+    )
+    .execute(pool)
+    .await;
+
+    match result {
+        Ok(_) => Some(true),
+        Err(_) => None,
+    }
+}
+
+pub async fn find_item(pool: &PgPool, user_id: &String, item_id: &String) -> Option<bool> {
+    let item_id = item_id.parse::<i32>().unwrap();
+    let user_id = user_id.parse::<i32>().unwrap();
+
+    let result = sqlx::query!(
+        "SELECT * FROM \"inventory\" WHERE user_id = $1 AND item_id = $2",
+        user_id,
+        item_id
+    )
+    .fetch_one(pool)
+    .await;
+
+    match result {
+        Ok(_) => Some(true),
+        Err(_) => None,
+    }
 }

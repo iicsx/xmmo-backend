@@ -6,6 +6,6 @@ use sqlx::FromRow;
 pub struct Inventory {
     pub user_id: u32,
     pub quantity: u32,
-    pub level: u32,
+    pub level: Option<u32>,
     pub item: Item,
 }
